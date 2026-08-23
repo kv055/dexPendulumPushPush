@@ -14,6 +14,7 @@
         android:label="PushPush Relay"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
         <activity
             android:name=".MainActivity"
