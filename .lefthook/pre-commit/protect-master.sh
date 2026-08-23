@@ -6,6 +6,12 @@ branch=$(git rev-parse --abbrev-ref HEAD)
 
 case "$branch" in
   main | master)
+    # Let through the automated dotenvx re-encrypt commit produced by
+    # .lefthook/post-commit/encrypt-env.sh (it stages nothing but .env.enc).
+    staged=$(git diff --cached --name-only)
+    if [[ "$staged" == ".env.enc" ]]; then
+      exit 0
+    fi
     cat >&2 <<EOF
 ✖ Direct commits to '$branch' are blocked.
   Make changes on a feature/* branch, then open a PR into '$branch'
