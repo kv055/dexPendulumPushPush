@@ -107,3 +107,7 @@ of shared instance.
 
 Follow-up cycle 2: shared OkHttp client, lazy config store, Robolectric tests
 (38 total), R8 rules + assembleRelease green.
+
+Emulator verification (API 34 x86_64): pairing deep-link, heartbeat POST with
+secret + per-install device id, payment relay from allowlisted package — all
+green against a local mock pushpush server.
