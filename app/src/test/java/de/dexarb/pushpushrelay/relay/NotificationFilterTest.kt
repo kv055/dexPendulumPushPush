@@ -5,7 +5,12 @@ import org.junit.Test
 
 class NotificationFilterTest {
 
-    private val filter = NotificationFilter(NotificationFilter.DefaultPackages)
+    private val apps = setOf(
+        "com.paypal.android.p2pmobile",
+        "com.revolut.revolut",
+        "com.sparkasse.zhk",
+    )
+    private val filter = NotificationFilter(apps)
 
     private fun assertCases(filter: NotificationFilter, cases: List<Pair<String, Boolean>>) =
         cases.forEach { (pkg, expected) ->
@@ -13,18 +18,12 @@ class NotificationFilterTest {
         }
 
     @Test
-    fun `default allowlist relays known banking apps`() {
+    fun `selected apps are relayed`() {
         assertCases(
             filter,
             listOf(
                 "com.paypal.android.p2pmobile" to true,
-                "com.revolut.revolut" to true,
-                "com.transferwise.android" to true,
-                "com.n26.android" to true,
                 "com.sparkasse.zhk" to true,
-                "com.dkbcodefactory.banking" to true,
-                "com.commerzbanking.app0" to true,
-                "com.db.pwcc" to true,
             ),
         )
     }
@@ -41,7 +40,7 @@ class NotificationFilterTest {
     }
 
     @Test
-    fun `unknown packages are not relayed`() {
+    fun `unselected and unknown packages are not relayed`() {
         assertCases(
             filter,
             listOf(
@@ -60,16 +59,8 @@ class NotificationFilterTest {
             emptyFilter,
             listOf(
                 "com.paypal.android.p2pmobile" to false,
-                "com.revolut.revolut" to false,
                 "" to false,
             ),
         )
-    }
-
-    @Test
-    fun `custom allowlist is honored`() {
-        val custom = NotificationFilter(setOf("my.custom.app"))
-        assertEquals(true, custom.shouldRelay("my.custom.app"))
-        assertEquals(false, custom.shouldRelay("com.revolut.revolut"))
     }
 }

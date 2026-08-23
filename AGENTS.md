@@ -15,9 +15,9 @@ Communication tab, then relays payment notifications and periodic heartbeats.
 - Secret storage must use EncryptedSharedPreferences / encrypted DataStore.
 - Notification reading uses `NotificationListenerService` (requires
   "Notification access" grant; deep-link the user to settings on first run).
-- Relay only notifications whose package is on the user-editable allowlist.
-  Ship sensible banking-app defaults (Sparkasse, Deutsche Bank, PayPal,
-  Revolut, DKB, Commerzbank, N26, Wise).
+- Relay only notifications whose package is on the user-selected allowlist (all-installed-apps picker, empty default).
+  The picker enumerates ALL installed apps (like MacroDroid's trigger config);
+  default is empty — nothing relays until the user selects apps.
 
 ## Multi-agent loop
 

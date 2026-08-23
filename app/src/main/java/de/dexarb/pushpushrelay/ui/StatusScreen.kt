@@ -13,7 +13,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,7 +26,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import de.dexarb.pushpushrelay.PushRelayApp
-import de.dexarb.pushpushrelay.relay.NotificationFilter
 import java.text.DateFormat
 import java.util.Date
 
@@ -64,49 +62,60 @@ fun StatusScreen(app: PushRelayApp, onUnpair: () -> Unit, modifier: Modifier = M
 @Composable
 private fun AllowlistEditor(app: PushRelayApp, allowlist: Set<String>) {
     val context = LocalContext.current
-    var newPackage by remember { mutableStateOf("") }
-    val editorEntries = (NotificationFilter.DefaultPackages + allowlist).sorted()
+    var query by remember { mutableStateOf("") }
+    val installedApps = remember {
+        context.packageManager.getInstalledApplications(0)
+            .filter { it.packageName != context.packageName }
+            .map { info ->
+                InstalledApp(
+                    packageName = info.packageName,
+                    label = runCatching {
+                        context.packageManager.getApplicationLabel(info).toString()
+                    }.getOrDefault(info.packageName),
+                )
+            }
+            .sortedBy { it.label.lowercase() }
+    }
+    val visible = remember(query, installedApps) {
+        if (query.isBlank()) installedApps
+        else installedApps.filter {
+            it.label.contains(query, ignoreCase = true) || it.packageName.contains(query, ignoreCase = true)
+        }
+    }
 
     Column(Modifier.fillMaxWidth()) {
-        Text("Relay these apps", style = MaterialTheme.typography.titleMedium)
-        editorEntries.forEach { pkg ->
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(
-                    checked = pkg in allowlist,
-                    onCheckedChange = { checked ->
-                        app.settings.setAllowlist(if (checked) allowlist + pkg else allowlist - pkg)
-                    },
-                )
-                Text(pkg)
-            }
-        }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(
-                value = newPackage,
-                onValueChange = { newPackage = it },
-                label = { Text("Add package name") },
-                singleLine = true,
-                modifier = Modifier.weight(1f),
-            )
-            OutlinedButton(
-                onClick = {
-                    val pkg = newPackage.trim()
-                    if (pkg.isNotEmpty()) {
-                        app.settings.setAllowlist(allowlist + pkg)
-                        newPackage = ""
+        Text("Relay notifications from", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "Nothing is relayed until you select at least one app.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        OutlinedTextField(
+            value = query,
+            onValueChange = { query = it },
+            label = { Text("Search ${installedApps.size} apps") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+        )
+        Column(Modifier.fillMaxWidth().padding(top = 4.dp)) {
+            visible.forEach { appInfo ->
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = appInfo.packageName in allowlist,
+                        onCheckedChange = { checked ->
+                            app.settings.setAllowlist(if (checked) allowlist + appInfo.packageName else allowlist - appInfo.packageName)
+                        },
+                    )
+                    Column {
+                        Text(appInfo.label, style = MaterialTheme.typography.bodyMedium)
+                        Text(appInfo.packageName, style = MaterialTheme.typography.bodySmall)
                     }
-                },
-                enabled = newPackage.isNotBlank(),
-            ) { Text("Add") }
-        }
-        if (context.packageName in allowlist) {
-            Text(
-                "Warning: do not relay this app's own notifications",
-                style = MaterialTheme.typography.bodySmall,
-            )
+                }
+            }
         }
     }
 }
+
+private data class InstalledApp(val packageName: String, val label: String)
 
 @Composable
 private fun SetupChecklist() {

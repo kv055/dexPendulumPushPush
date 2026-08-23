@@ -2,7 +2,6 @@ package de.dexarb.pushpushrelay.storage
 
 import android.content.Context
 import android.content.SharedPreferences
-import de.dexarb.pushpushrelay.relay.NotificationFilter.Companion.DefaultPackages
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -42,7 +41,7 @@ class AppSettings(context: Context) {
     }
 
     private fun readAllowlist(): Set<String> =
-        prefs.getStringSet(KEY_ALLOWLIST, null)?.toSet() ?: DefaultPackages
+        prefs.getStringSet(KEY_ALLOWLIST, null)?.toSet() ?: emptySet()
 
     private fun readLastRelay(): LastRelay =
         LastRelay(prefs.getLong(KEY_LAST_RELAY_AT, 0L), prefs.getString(KEY_LAST_RELAY_SUMMARY, null))

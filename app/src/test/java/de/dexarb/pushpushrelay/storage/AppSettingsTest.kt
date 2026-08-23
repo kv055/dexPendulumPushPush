@@ -2,7 +2,6 @@ package de.dexarb.pushpushrelay.storage
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import de.dexarb.pushpushrelay.relay.NotificationFilter.Companion.DefaultPackages
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -23,8 +22,8 @@ class AppSettingsTest {
     }
 
     @Test
-    fun `defaults to banking packages when nothing stored`() {
-        assertEquals(DefaultPackages, settings.getAllowlist())
+    fun `defaults to empty allowlist when nothing stored`() {
+        assertEquals(emptySet<String>(), settings.getAllowlist())
     }
 
     @Test
