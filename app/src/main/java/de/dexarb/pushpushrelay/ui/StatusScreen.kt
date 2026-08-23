@@ -4,11 +4,14 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
@@ -24,8 +27,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import de.dexarb.pushpushrelay.PushRelayApp
+import de.dexarb.pushpushrelay.R
 import java.text.DateFormat
 import java.util.Date
 
@@ -37,6 +42,24 @@ fun StatusScreen(app: PushRelayApp, onUnpair: () -> Unit, modifier: Modifier = M
     val lastRelay by app.settings.lastRelay.collectAsState()
 
     Column(modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Image(
+                painter = painterResource(
+                    if (isSystemInDarkTheme()) R.drawable.brand_mark_dark else R.drawable.brand_mark_light
+                ),
+                contentDescription = "DexArb pendulum mark",
+                modifier = Modifier.size(56.dp),
+            )
+            Column {
+                Text("PushPush Relay", style = MaterialTheme.typography.titleLarge)
+                Text("Fiat payment signal relay", style = MaterialTheme.typography.bodySmall)
+            }
+        }
+
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("Paired", style = MaterialTheme.typography.titleMedium)

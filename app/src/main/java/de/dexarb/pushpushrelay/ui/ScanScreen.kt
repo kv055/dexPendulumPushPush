@@ -60,6 +60,7 @@ private fun ScanCamera(onQrScanned: (String) -> Boolean) {
         onDispose { executor.shutdown() }
     }
     var handled by remember { mutableStateOf(false) }
+    var cameraReady by remember { mutableStateOf(false) }
     val scanner = remember {
         BarcodeScanning.getClient(
             BarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_QR_CODE).build()
@@ -92,10 +93,16 @@ private fun ScanCamera(onQrScanned: (String) -> Boolean) {
                     }
                     provider.unbindAll()
                     provider.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
+                    cameraReady = true
                 }, ContextCompat.getMainExecutor(ctx))
                 previewView
             },
         )
+        if (!cameraReady) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                PendulumSpinner()
+            }
+        }
         Text(
             "Scan the pairing QR from the Communication tab",
             Modifier.align(Alignment.BottomCenter).padding(24.dp),

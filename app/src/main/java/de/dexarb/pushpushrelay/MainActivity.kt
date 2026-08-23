@@ -4,8 +4,8 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import de.dexarb.pushpushrelay.storage.AppSettings
 import de.dexarb.pushpushrelay.ui.AppRoot
+import de.dexarb.pushpushrelay.ui.PushRelayTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 
 class MainActivity : ComponentActivity() {
@@ -19,7 +19,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         app = application as PushRelayApp
         capturePairIntent(intent)
-        setContent { AppRoot(this) }
+        setContent { PushRelayTheme { AppRoot(this) } }
     }
 
     override fun onNewIntent(intent: Intent) {
