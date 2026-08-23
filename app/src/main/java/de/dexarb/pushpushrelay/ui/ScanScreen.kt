@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,7 +34,7 @@ import com.google.mlkit.vision.common.InputImage
 import java.util.concurrent.Executors
 
 @Composable
-fun ScanScreen(onQrScanned: (String) -> Unit) {
+fun ScanScreen(onQrScanned: (String) -> Boolean) {
     val context = LocalContext.current
     var hasPermission by remember {
         mutableStateOf(
@@ -52,9 +53,12 @@ fun ScanScreen(onQrScanned: (String) -> Unit) {
 }
 
 @Composable
-private fun ScanCamera(onQrScanned: (String) -> Unit) {
+private fun ScanCamera(onQrScanned: (String) -> Boolean) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val executor = remember { Executors.newSingleThreadExecutor() }
+    DisposableEffect(Unit) {
+        onDispose { executor.shutdown() }
+    }
     var handled by remember { mutableStateOf(false) }
     val scanner = remember {
         BarcodeScanning.getClient(
@@ -78,9 +82,8 @@ private fun ScanCamera(onQrScanned: (String) -> Unit) {
                             scanner.process(input)
                                 .addOnSuccessListener { codes ->
                                     codes.firstOrNull()?.rawValue?.let { raw ->
-                                        if (!handled) {
+                                        if (!handled && onQrScanned(raw)) {
                                             handled = true
-                                            onQrScanned(raw)
                                         }
                                     }
                                 }

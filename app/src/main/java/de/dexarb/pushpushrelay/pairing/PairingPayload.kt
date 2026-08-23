@@ -8,7 +8,10 @@ data class PairingPayload(
     val notifyUrl: String,
     val heartbeatUrl: String,
     val secret: String,
-)
+) {
+    override fun toString(): String =
+        "PairingPayload(notifyUrl=$notifyUrl, heartbeatUrl=$heartbeatUrl, secret=REDACTED)"
+}
 
 sealed class PairingParseResult {
     data class Parsed(val payload: PairingPayload) : PairingParseResult()

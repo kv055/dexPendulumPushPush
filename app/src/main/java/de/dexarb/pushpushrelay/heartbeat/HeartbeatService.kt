@@ -1,6 +1,5 @@
 package de.dexarb.pushpushrelay.heartbeat
 
-import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
@@ -15,6 +14,7 @@ import de.dexarb.pushpushrelay.net.RelayClient
 import de.dexarb.pushpushrelay.net.RelayResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
@@ -22,6 +22,7 @@ import kotlinx.coroutines.launch
 class HeartbeatService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var loopJob: Job? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -36,16 +37,15 @@ class HeartbeatService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
-        scope.launch {
+        loopJob?.cancel()
+        loopJob = scope.launch {
+            val client = RelayClient(
+                notifyUrl = config.notifyUrl,
+                heartbeatUrl = config.heartbeatUrl,
+                secretProvider = { config.secret },
+            )
             HeartbeatLoop().run(
-                action = {
-                    val client = RelayClient(
-                        notifyUrl = config.notifyUrl,
-                        heartbeatUrl = config.heartbeatUrl,
-                        secretProvider = { config.secret },
-                    )
-                    client.postHeartbeat(config.deviceId) is RelayResult.Success
-                },
+                action = { client.postHeartbeat(config.deviceId) is RelayResult.Success },
                 onResult = { ok ->
                     if (ok) app.settings.recordHeartbeat(System.currentTimeMillis())
                 },
@@ -55,6 +55,7 @@ class HeartbeatService : Service() {
     }
 
     override fun onDestroy() {
+        loopJob?.cancel()
         scope.cancel()
         super.onDestroy()
     }

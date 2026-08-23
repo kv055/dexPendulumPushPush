@@ -56,24 +56,24 @@ One item per agent cycle. Gate: `. .tools/env.sh && ./gradlew build lint test`.
 
 ## P3 — Android components
 
-### [DONE] B06: NotificationListenerService relay service
+### [OPEN] B06: NotificationListenerService relay service
 - `relay/PushRelayService.kt`, manifest binding + intent filter, permission
   check helper, deep-link to notification access settings.
 - Accept: Robolectric/unit-testable parts green; manual smoke checklist in item.
 
-### [DONE] B07: Heartbeat foreground service
+### [OPEN] B07: Heartbeat foreground service
 - `heartbeat/HeartbeatService.kt`: foreground service, 5-min coroutine loop,
   posts heartbeat, exposes last-success state via StateFlow; runs on boot
   (RECEIVE_BOOT_COMPLETED) when paired.
 - Accept: interval logic unit-tested (injected scheduler).
 
-### [DONE] B08: QR scan screen
+### [OPEN] B08: QR scan screen
 - CameraX + ML Kit barcode scanner in `ui/ScanScreen.kt`; on valid payload:
   save config, start services, navigate to status.
 
 ## P4 — UI
 
-### [DONE] B09: Status screen + first-run checklist
+### [OPEN] B09: Status screen + first-run checklist
 - Endpoint, pairing state, last heartbeat/notification timestamps, connection
   test button, allowlist editor, battery-optimization exemption prompt.
 
@@ -83,3 +83,19 @@ One item per agent cycle. Gate: `. .tools/env.sh && ./gradlew build lint test`.
 - In dexArbTrading repo: extend `PhonePushSetupSection.tsx` to render a second
   QR (after Reveal) with the v1 pairing JSON; update
   `e2e/tests/communication-qr.spec.ts`; keep MacroDroid text QR untouched.
+
+---
+
+## Review cycle 1 (reviewer verdict: REOPEN)
+
+### [IN_PROGRESS(implementer)] R1: service correctness (B06/B07 findings)
+- Guard `startForegroundService` against ForegroundServiceStartNotAllowedException (PushRelayService).
+- Use NotificationFilter.shouldRelay (case-insensitive) instead of raw Set.contains.
+- HeartbeatService must cancel the prior loop job on onStartCommand instead of stacking loops; hoist RelayClient out of the loop.
+- Redact secret from PairedConfig/PairingPayload toString.
+
+### [IN_PROGRESS(implementer)] R2: UI robustness (B08/B09 findings)
+- Invalid QR scan must show feedback and re-enable scanning (callback returns accepted flag; reset handled).
+- SnackbarHost actually used; executor shut down via DisposableEffect.
+- Allowlist editor: list all current entries (not just defaults), support adding/removing arbitrary packages.
+- Runtime POST_NOTIFICATIONS request on API 33+; battery-optimization exemption button; re-check notification access on ON_RESUME.

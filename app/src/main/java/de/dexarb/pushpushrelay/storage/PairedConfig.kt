@@ -7,7 +7,10 @@ data class PairedConfig(
     val heartbeatUrl: String,
     val secret: String,
     val deviceId: String,
-)
+) {
+    override fun toString(): String =
+        "PairedConfig(notifyUrl=$notifyUrl, heartbeatUrl=$heartbeatUrl, secret=REDACTED, deviceId=$deviceId)"
+}
 
 interface PairedConfigStore {
     fun load(): PairedConfig?

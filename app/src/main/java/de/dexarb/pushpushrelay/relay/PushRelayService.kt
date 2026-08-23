@@ -3,6 +3,7 @@ package de.dexarb.pushpushrelay.relay
 import android.app.Notification
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import de.dexarb.pushpushrelay.PushRelayApp
@@ -19,12 +20,12 @@ class PushRelayService : NotificationListenerService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onListenerConnected() {
-        startForegroundService(Intent(this, HeartbeatService::class.java))
+        startServiceSafely(Intent(this, HeartbeatService::class.java))
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         val app = application as PushRelayApp
-        if (!app.settings.getAllowlist().contains(sbn.packageName)) return
+        if (!NotificationFilter(app.settings.getAllowlist()).shouldRelay(sbn.packageName)) return
         val config = app.configStore.load() ?: return
         val title = sbn.notification.extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()
         val text = listOfNotNull(
@@ -43,6 +44,17 @@ class PushRelayService : NotificationListenerService() {
                     app.settings.recordRelay(System.currentTimeMillis(), "$appName: ${title ?: ""}".trim())
                 else -> {}
             }
+        }
+    }
+
+    private fun startServiceSafely(intent: Intent) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+        } catch (_: IllegalStateException) {
         }
     }
 
