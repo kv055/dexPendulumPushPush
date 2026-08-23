@@ -104,3 +104,6 @@ R1/R2 fixed in commit "Fix reviewer findings R1/R2" — gate green, 31 tests.
 Remaining accepted-as-minor: service-level Robolectric tests not yet added
 (B06/B07 partial coverage), RelayClient constructed per notification instead
 of shared instance.
+
+Follow-up cycle 2: shared OkHttp client, lazy config store, Robolectric tests
+(38 total), R8 rules + assembleRelease green.
