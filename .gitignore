@@ -1,0 +1,10 @@
+.gradle/
+build/
+local.properties
+.tools/jdk/
+.tools/android-sdk/
+.tools/gradle*/
+.tools/*.zip
+.tools/*.tar.gz
+*.iml
+.idea/
