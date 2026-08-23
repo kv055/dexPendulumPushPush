@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import de.dexarb.pushpushrelay.MainActivity
+import de.dexarb.pushpushrelay.PushRelayApp
 import de.dexarb.pushpushrelay.heartbeat.HeartbeatService
 import de.dexarb.pushpushrelay.pairing.PairingParseResult
 import de.dexarb.pushpushrelay.pairing.PairingPayloadParser
@@ -71,27 +72,23 @@ fun AppRoot(activity: MainActivity) {
         }
     }
 
+    LaunchedEffect(Unit) {
+        activity.pairRequest.collect { data ->
+            if (data != null && !paired) {
+                val decoded = runCatching {
+                    String(android.util.Base64.decode(data, android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP or android.util.Base64.NO_PADDING))
+                }.getOrNull()
+                if (decoded != null) handlePairing(decoded, app) { paired = true }
+            }
+        }
+    }
+
     Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { padding ->
         if (!paired) {
             ScanScreen(onQrScanned = { raw ->
-                when (val result = PairingPayloadParser.parse(raw)) {
-                    is PairingParseResult.Parsed -> {
-                        app.configStore.save(
-                            PairedConfig(
-                                notifyUrl = result.payload.notifyUrl,
-                                heartbeatUrl = result.payload.heartbeatUrl,
-                                secret = result.payload.secret,
-                                deviceId = DeviceIdGenerator.generate(),
-                            )
-                        )
-                        paired = true
-                        true
-                    }
-                    is PairingParseResult.Invalid -> {
-                        scope.launch { snackbar.showSnackbar("Invalid QR: ${result.reason}") }
-                        false
-                    }
-                }
+                val ok = handlePairing(raw, app) { paired = true }
+                if (!ok) scope.launch { snackbar.showSnackbar("Invalid QR — try again") }
+                ok
             })
         } else {
             StatusScreen(app = app, onUnpair = {
@@ -101,3 +98,20 @@ fun AppRoot(activity: MainActivity) {
         }
     }
 }
+
+private fun handlePairing(raw: String, app: PushRelayApp, onPaired: () -> Unit): Boolean =
+    when (val result = PairingPayloadParser.parse(raw)) {
+        is PairingParseResult.Parsed -> {
+            app.configStore.save(
+                PairedConfig(
+                    notifyUrl = result.payload.notifyUrl,
+                    heartbeatUrl = result.payload.heartbeatUrl,
+                    secret = result.payload.secret,
+                    deviceId = DeviceIdGenerator.generate(),
+                )
+            )
+            onPaired()
+            true
+        }
+        is PairingParseResult.Invalid -> false
+    }
