@@ -15,25 +15,44 @@ One item per agent cycle. Gate: `. .tools/env.sh && ./gradlew build lint test`.
 
 ## P2 — Core logic (pure Kotlin, unit-testable)
 
-### [OPEN] B02: Pairing payload parser
+### [IN_PROGRESS(implementer)] B02: Pairing payload parser
 - `pairing/PairingPayload.kt`: parse JSON QR content
   `{"v":1,"type":"pushpush-pairing","notify_url","heartbeat_url","secret"}`.
 - Validate type/version/URLs(https or dev http)/non-blank secret ≤256 chars.
 - Accept: full unit test coverage incl. malformed inputs.
+- Impl notes: kotlinx.serialization `Json { ignoreUnknownKeys = true }` into a
+  private wire DTO; `PairingPayloadParser.parse()` returns sealed
+  `PairingParseResult.Parsed/Invalid(reason)` with specific reasons. URL check
+  via `java.net.URI` (scheme http/https + non-blank host). 11 unit tests green.
 
-### [OPEN] B03: Device ID generator/store contract
+### [IN_PROGRESS(implementer)] B03: Device ID generator/store contract
 - `storage/PairedConfig.kt`: interface + impl over EncryptedSharedPreferences;
   holds urls, secret, deviceId (`payment-phone-<8hex>` generated once).
 - Accept: unit tests with fake prefs for id stability and payload round-trip.
+- Impl notes: `PairedConfig` data class + `PairedConfigStore` interface +
+  `DeviceIdGenerator` (SecureRandom, 8 lowercase hex) are pure Kotlin in
+  PairedConfig.kt; Android-backed `EncryptedPairedConfigStore(context)` lives
+  in separate storage/EncryptedPairedConfigStore.kt (androidx security-crypto,
+  AES256_GCM master key) and is not referenced from JVM unit tests. Tests use
+  an in-memory fake store; id regex + uniqueness covered. 4 unit tests green.
 
-### [OPEN] B04: Relay API client
+### [IN_PROGRESS(implementer)] B04: Relay API client
 - `net/RelayClient.kt`: OkHttp client, `postNotification(app,title,text)`,
   `postHeartbeat(deviceId)`; sets `X-Webhook-Secret`; never logs secret/body.
 - Accept: MockWebServer tests incl. 4xx/5xx → retryable result types.
+- Impl notes: pure Kotlin; ctor `(OkHttpClient = default(10s connect/15s read),
+  notifyUrl, heartbeatUrl, secretProvider)`. kotlinx.serialization JSON with
+  `explicitNulls=false` so null app/title/text fields are omitted. Device id
+  truncated to 128 chars. Synchronous calls; IOException → NetworkError(message),
+  non-2xx → HttpError(code), 2xx → Success. Secret never in results' toString.
 
-### [OPEN] B05: Notification filter
+### [IN_PROGRESS(implementer)] B05: Notification filter
 - `relay/NotificationFilter.kt`: allowlist matching + default banking packages.
 - Accept: table-driven unit tests.
+- Impl notes: case-insensitive exact-package matching; blank package never
+  relayed; empty allowlist relays nothing. Defaults (8): PayPal, Revolut,
+  Wise, N26, Sparkasse, DKB, Commerzbank, Deutsche Bank. Table-driven tests.
+  5 unit tests green.
 
 ## P3 — Android components
 
