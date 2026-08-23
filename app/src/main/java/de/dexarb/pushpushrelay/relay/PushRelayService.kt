@@ -35,6 +35,7 @@ class PushRelayService : NotificationListenerService() {
         val appName = appNameOf(this, sbn.packageName)
         scope.launch {
             val client = RelayClient(
+                okHttpClient = app.okHttpClient,
                 notifyUrl = config.notifyUrl,
                 heartbeatUrl = config.heartbeatUrl,
                 secretProvider = { config.secret },

@@ -40,6 +40,7 @@ class HeartbeatService : Service() {
         loopJob?.cancel()
         loopJob = scope.launch {
             val client = RelayClient(
+                okHttpClient = app.okHttpClient,
                 notifyUrl = config.notifyUrl,
                 heartbeatUrl = config.heartbeatUrl,
                 secretProvider = { config.secret },
