@@ -8,3 +8,9 @@ local.properties
 .tools/*.tar.gz
 *.iml
 .idea/
+compat/results/
+compat/notifier-helper/build/
+compat/notifier-helper/app/build/
+compat/notifier-helper/.gradle/
+compat/notifier-helper/local.properties
+compat/notifier-helper/.kotlin/

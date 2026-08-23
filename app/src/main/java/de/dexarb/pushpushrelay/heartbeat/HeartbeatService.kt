@@ -85,7 +85,15 @@ class HeartbeatService : Service() {
         private const val NOTIFICATION_ID = 1
 
         fun start(context: Context) {
-            context.startForegroundService(Intent(context, HeartbeatService::class.java))
+            val intent = Intent(context, HeartbeatService::class.java)
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(intent)
+                } else {
+                    context.startService(intent)
+                }
+            } catch (_: IllegalStateException) {
+            }
         }
     }
 }

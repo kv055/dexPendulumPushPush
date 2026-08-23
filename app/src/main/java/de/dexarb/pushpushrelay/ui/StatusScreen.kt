@@ -147,7 +147,9 @@ private fun SetupChecklist() {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("Setup checklist", style = MaterialTheme.typography.titleMedium)
             val powerManager = context.getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager
-            if (!powerManager.isIgnoringBatteryOptimizations(context.packageName)) {
+            val ignoring = Build.VERSION.SDK_INT < Build.VERSION_CODES.M ||
+                powerManager.isIgnoringBatteryOptimizations(context.packageName)
+            if (!ignoring) {
                 Button(onClick = {
                     context.startActivity(
                         Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
