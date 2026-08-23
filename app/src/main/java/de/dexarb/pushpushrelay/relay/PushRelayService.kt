@@ -1,0 +1,55 @@
+package de.dexarb.pushpushrelay.relay
+
+import android.app.Notification
+import android.content.Context
+import android.content.Intent
+import android.service.notification.NotificationListenerService
+import android.service.notification.StatusBarNotification
+import de.dexarb.pushpushrelay.PushRelayApp
+import de.dexarb.pushpushrelay.heartbeat.HeartbeatService
+import de.dexarb.pushpushrelay.net.RelayClient
+import de.dexarb.pushpushrelay.net.RelayResult
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+
+class PushRelayService : NotificationListenerService() {
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    override fun onListenerConnected() {
+        startForegroundService(Intent(this, HeartbeatService::class.java))
+    }
+
+    override fun onNotificationPosted(sbn: StatusBarNotification) {
+        val app = application as PushRelayApp
+        if (!app.settings.getAllowlist().contains(sbn.packageName)) return
+        val config = app.configStore.load() ?: return
+        val title = sbn.notification.extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()
+        val text = listOfNotNull(
+            sbn.notification.extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString(),
+            sbn.notification.extras.getCharSequence(Notification.EXTRA_TEXT)?.toString(),
+        ).firstOrNull { it.isNotBlank() }
+        val appName = appNameOf(this, sbn.packageName)
+        scope.launch {
+            val client = RelayClient(
+                notifyUrl = config.notifyUrl,
+                heartbeatUrl = config.heartbeatUrl,
+                secretProvider = { config.secret },
+            )
+            when (val result = client.postNotification(appName, title, text)) {
+                is RelayResult.Success ->
+                    app.settings.recordRelay(System.currentTimeMillis(), "$appName: ${title ?: ""}".trim())
+                else -> {}
+            }
+        }
+    }
+
+    private fun appNameOf(context: Context, packageName: String): String =
+        runCatching {
+            context.packageManager.getApplicationLabel(
+                context.packageManager.getApplicationInfo(packageName, 0)
+            ).toString()
+        }.getOrDefault(packageName)
+}
