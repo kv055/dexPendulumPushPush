@@ -1,0 +1,11 @@
+title = "dexPendulumPushPush Gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Encrypted dotenv file and non-secret dotenv templates"
+paths = [
+  '''(^|/)\.env(?:\..*)?\.enc$''',
+  '''(^|/)\.env(?:\..*)?\.example$''',
+]

@@ -14,3 +14,11 @@ compat/notifier-helper/app/build/
 compat/notifier-helper/.gradle/
 compat/notifier-helper/local.properties
 compat/notifier-helper/.kotlin/
+
+*.keystore
+*.jks
+
+# plaintext env + dotenvx private keys stay local; only .env.enc is committed
+.env
+.env.keys
+.git/env.hash

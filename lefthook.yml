@@ -1,0 +1,28 @@
+# Run `lefthook install` once per clone to wire these into .git/hooks.
+# Local guards protecting 'master' (no server-side branch protection on a Free
+# private repo). Bypassable with --no-verify — guardrail, not a hard wall.
+
+pre-commit:
+  scripts:
+    "protect-master.sh":
+      runner: bash
+    "protect-secrets.sh":
+      runner: bash
+
+pre-push:
+  # use_stdin forwards git's pre-push ref list to the script's `while read`;
+  # without it lefthook uses a pseudo-TTY and the guard is blind.
+  scripts:
+    "protect-master.sh":
+      runner: bash
+      use_stdin: true
+
+pre-merge-commit:
+  scripts:
+    "protect-master.sh":
+      runner: bash
+
+post-commit:
+  scripts:
+    "encrypt-env.sh":
+      runner: bash
