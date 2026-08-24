@@ -111,3 +111,17 @@ Follow-up cycle 2: shared OkHttp client, lazy config store, Robolectric tests
 Emulator verification (API 34 x86_64): pairing deep-link, heartbeat POST with
 secret + per-install device id, payment relay from allowlisted package — all
 green against a local mock pushpush server.
+
+## Compatibility test cycle (compat/)
+
+### [DONE] C01: Standardized emulator compatibility suite
+- `compat/compat-test.sh` + `compat/mock_pushpush.py` + `compat/notifier-helper/`.
+- Boots headless emulators (default 21/26/34), pairs via deep-link against the
+  mock server, asserts heartbeat (secret + device-id format) and payment relay
+  (allowlist injection + posted notification) per level; screenshots + logs in
+  `compat/results/` (gitignored). Exit code non-zero on failure.
+- First full run found and fixed: pipefail SIGPIPE false-failure, Android 5
+  `settings put ""` limitation, listener-rebind allowlist overwrite race,
+  helper `getSystemService(Class)` crash on API < 23, `cmd notification post`
+  unavailability below API 28 (helper covers 21-27).
+- Verified: PASS 21 / 26 / 34, exit 0 (single-command run).
