@@ -14,7 +14,7 @@ class MainActivity : Activity() {
             .setContentTitle("Payment received")
             .setContentText("You received 25,00 EUR from Compat Test")
             .build()
-        getSystemService(NotificationManager::class.java).notify(1, notification)
+        (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).notify(1, notification)
         finish()
     }
 }

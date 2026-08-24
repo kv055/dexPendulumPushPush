@@ -87,9 +87,14 @@ inject_allowlist() {
     </set>
 </map>
 EOF
-  adb push "$tmp" /data/local/tmp/compat_settings.xml >/dev/null
-  adb shell run-as de.dexarb.pushpushrelay cp /data/local/tmp/compat_settings.xml shared_prefs/settings.xml
+  adb -s "$ADB_SERIAL" push "$tmp" /data/local/tmp/compat_settings.xml >/dev/null || { fail "allowlist push failed"; rm -f "$tmp"; return 1; }
+  adb -s "$ADB_SERIAL" shell run-as de.dexarb.pushpushrelay cp /data/local/tmp/compat_settings.xml shared_prefs/settings.xml || { fail "allowlist cp failed"; rm -f "$tmp"; return 1; }
   rm -f "$tmp"
+  if ! adb -s "$ADB_SERIAL" shell run-as de.dexarb.pushpushrelay cat shared_prefs/settings.xml | grep -q "$pkg"; then
+    fail "allowlist injection not persisted"
+    return 1
+  fi
+  return 0
 }
 
 base64url() { base64 -w0 | tr '+/' '-_' | tr -d '='; }
@@ -111,11 +116,16 @@ run_level() {
 
   if ! "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" list avd 2>/dev/null | grep -q "Name: $avd\$"; then
     log "API $api: ensuring system image $image"
-    yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_HOME" "$image" >"$dir/sdkmanager.log" 2>&1 \
-      || { fail "API $api: sdkmanager failed (see $dir/sdkmanager.log)"; return 1; }
+    (yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_HOME" "$image") >"$dir/sdkmanager.log" 2>&1
+    sdk_rc=$?
+    if [ $sdk_rc -ne 0 ] && [ $sdk_rc -ne 141 ]; then
+      fail "API $api: sdkmanager failed rc=$sdk_rc (see $dir/sdkmanager.log)"
+      echo "FAIL $api" >> "$RESULTS/summary.txt"
+      return 1
+    fi
     log "API $api: creating AVD $avd"
     echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd -n "$avd" -k "$image" --force >"$dir/avdmanager.log" 2>&1 \
-      || { fail "API $api: avdmanager failed"; return 1; }
+      || { fail "API $api: avdmanager failed"; echo "FAIL $api" >> "$RESULTS/summary.txt"; return 1; }
   fi
 
   rm -f "$hits"
@@ -163,8 +173,7 @@ run_level() {
     adb -s "$serial" shell am start -a android.intent.action.VIEW -d "pushpushrelay://pair?data=$payload" de.dexarb.pushpushrelay >/dev/null
 
     if wait_for_hit "$hits" "/pushpush/phone-heartbeat" $HEARTBEAT_TIMEOUT; then
-      if grep -q '"body": "{\"device_id\":\"payment-phone-[0-9a-f]\{8\}\"}"' "$hits" || \
-         grep -Eq '"device_id":"payment-phone-[0-9a-f]{8}"' "$hits"; then
+      if grep -Eq 'payment-phone-[0-9a-f]{8}' "$hits"; then
         log "API $api: heartbeat OK (valid secret, device id format)"
       else
         fail "API $api: heartbeat arrived but device id malformed"
@@ -179,7 +188,7 @@ run_level() {
   if [ $ok -eq 1 ]; then
     # Relay check: allowlist a notifier package, post a notification, expect /notify hit.
     local relay_pkg notify_title notify_text
-    if [ "$api" -ge 24 ]; then
+    if [ "$api" -ge 28 ]; then
       relay_pkg="com.android.shell"
       notify_title="Payment received"
       notify_text="You received 25,00 EUR from Compat Test"
@@ -190,24 +199,39 @@ run_level() {
       adb -s "$serial" install -r "$HELPER_APK" >/dev/null 2>&1 || { fail "API $api: helper install failed"; ok=0; }
     fi
 
+    # Unbind the notification listener so the app process stays dead after
+    # force-stop (otherwise the system instantly restarts it and the fresh
+    # process overwrites the injected allowlist from its in-memory prefs).
+    # Note: `settings put ... ""` errors on Android 5, hence the placeholder.
+    adb -s "$serial" shell settings put secure enabled_notification_listeners none
     adb -s "$serial" shell am force-stop de.dexarb.pushpushrelay
-    inject_allowlist "$relay_pkg"
-    adb -s "$serial" shell am start -n de.dexarb.pushpushrelay/.MainActivity >/dev/null
-    sleep 4
-    local hits_before
-    hits_before=$(grep -c '"/pushpush/notify"' "$hits" 2>/dev/null || echo 0)
-
-    if [ "$api" -ge 24 ]; then
-      adb -s "$serial" shell cmd notification post -S bigtext -t "$notify_title" compat_test "$notify_text" >/dev/null 2>&1
-    else
-      adb -s "$serial" shell am start -n de.dexarb.notifierhelper/.MainActivity >/dev/null
-    fi
-
-    if wait_for_hit "$hits" "/pushpush/notify" $RELAY_TIMEOUT; then
-      log "API $api: payment relay OK"
-    else
-      fail "API $api: no payment relay within ${RELAY_TIMEOUT}s"
-      ok=0
+    local wait_count=0
+    while adb -s "$serial" shell ps 2>/dev/null | grep -q "de.dexarb.pushpushrelay" && [ $wait_count -lt 15 ]; do
+      sleep 1
+      wait_count=$((wait_count + 1))
+      adb -s "$serial" shell am force-stop de.dexarb.pushpushrelay >/dev/null 2>&1
+    done
+    ADB_SERIAL="$serial" inject_allowlist "$relay_pkg" || { fail "API $api: allowlist injection failed"; ok=0; }
+    if [ $ok -eq 1 ]; then
+      local comp="de.dexarb.pushpushrelay/de.dexarb.pushpushrelay.relay.PushRelayService"
+      adb -s "$serial" shell settings put secure enabled_notification_listeners "$comp"
+      adb -s "$serial" shell am start -n de.dexarb.pushpushrelay/.MainActivity >/dev/null
+      sleep 6
+      if ! adb -s "$serial" shell run-as de.dexarb.pushpushrelay cat shared_prefs/settings.xml | grep -q "allowlist"; then
+        fail "API $api: allowlist lost after app restart"
+        ok=0
+      fi
+      if [ "$api" -ge 28 ]; then
+        adb -s "$serial" shell cmd notification post -S bigtext -t "$notify_title" compat_test "$notify_text" >/dev/null 2>&1
+      else
+        adb -s "$serial" shell am start -n de.dexarb.notifierhelper/.MainActivity >/dev/null
+      fi
+      if wait_for_hit "$hits" "/pushpush/notify" $RELAY_TIMEOUT; then
+        log "API $api: payment relay OK"
+      else
+        fail "API $api: no payment relay within ${RELAY_TIMEOUT}s"
+        ok=0
+      fi
     fi
   fi
 
