@@ -58,3 +58,18 @@ Rules:
 - DI by hand (constructor injection) — no Hilt/Koin unless size demands it.
 - HTTP: OkHttp + kotlinx.serialization.
 - UI: Jetpack Compose, Material 3.
+
+## Compatibility test
+
+`compat/compat-test.sh` boots headless emulators (default: API 21, 26, 34),
+pairs the app via deep-link against a local mock pushpush server, and asserts
+heartbeat + payment relay on each level. Run before releases:
+
+```
+. .tools/env.sh && ./compat/compat-test.sh            # full matrix
+./compat/compat-test.sh --skip-build 21               # single level, reuse APKs
+```
+
+Exit code is non-zero on any failure; per-level logs and screenshots land in
+`compat/results/` (gitignored). `--keep` leaves the emulator running for
+debugging.
