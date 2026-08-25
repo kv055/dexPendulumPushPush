@@ -1,14 +1,23 @@
 package de.dexarb.pushpushrelay.ui
 
 import android.content.Intent
+import android.content.pm.ApplicationInfo
+import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.core.graphics.drawable.toBitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -41,7 +50,13 @@ fun StatusScreen(app: PushRelayApp, onUnpair: () -> Unit, modifier: Modifier = M
     val lastHeartbeatAt by app.settings.lastHeartbeatAt.collectAsState()
     val lastRelay by app.settings.lastRelay.collectAsState()
 
-    Column(modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(
+        modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
         Row(
             Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -88,13 +103,24 @@ private fun AllowlistEditor(app: PushRelayApp, allowlist: Set<String>) {
     var query by remember { mutableStateOf("") }
     val installedApps = remember {
         context.packageManager.getInstalledApplications(0)
-            .filter { it.packageName != context.packageName }
+            .filter { info ->
+                info.packageName != context.packageName &&
+                    (
+                        (info.flags and ApplicationInfo.FLAG_SYSTEM) == 0 ||
+                            (info.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
+                        )
+            }
             .map { info ->
                 InstalledApp(
                     packageName = info.packageName,
                     label = runCatching {
                         context.packageManager.getApplicationLabel(info).toString()
                     }.getOrDefault(info.packageName),
+                    icon = runCatching {
+                        (context.packageManager.getApplicationIcon(info.packageName) as BitmapDrawable)
+                            .toBitmap()
+                            .asImageBitmap()
+                    }.getOrDefault(null),
                 )
             }
             .sortedBy { it.label.lowercase() }
@@ -128,6 +154,13 @@ private fun AllowlistEditor(app: PushRelayApp, allowlist: Set<String>) {
                             app.settings.setAllowlist(if (checked) allowlist + appInfo.packageName else allowlist - appInfo.packageName)
                         },
                     )
+                    appInfo.icon?.let { bitmap ->
+                        Image(
+                            bitmap = bitmap,
+                            contentDescription = null,
+                            modifier = Modifier.size(36.dp).padding(end = 4.dp),
+                        )
+                    }
                     Column {
                         Text(appInfo.label, style = MaterialTheme.typography.bodyMedium)
                         Text(appInfo.packageName, style = MaterialTheme.typography.bodySmall)
@@ -138,7 +171,11 @@ private fun AllowlistEditor(app: PushRelayApp, allowlist: Set<String>) {
     }
 }
 
-private data class InstalledApp(val packageName: String, val label: String)
+private data class InstalledApp(
+    val packageName: String,
+    val label: String,
+    val icon: ImageBitmap?,
+)
 
 @Composable
 private fun SetupChecklist() {
