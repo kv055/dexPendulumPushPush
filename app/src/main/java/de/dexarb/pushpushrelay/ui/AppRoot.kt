@@ -108,6 +108,7 @@ private fun handlePairing(raw: String, app: PushRelayApp, onPaired: () -> Unit):
                     heartbeatUrl = result.payload.heartbeatUrl,
                     secret = result.payload.secret,
                     deviceId = DeviceIdGenerator.generate(),
+                    paymentMethods = result.payload.paymentMethods,
                 )
             )
             onPaired()

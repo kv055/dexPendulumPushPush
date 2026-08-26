@@ -141,3 +141,23 @@ green against a local mock pushpush server.
   `compat/compat-test.sh` with KVM enabled; uploads results on failure.
 - Accept: unit gate green; androidTest APK assembles. Instrumented tests run
   on device/emulator only (`connectedDebugAndroidTest`).
+
+## Pairing QR v2 cycle
+
+### [DONE] V1: payment methods from pairing QR (contract v2)
+- `pairing/PairingPayload.kt`: `PaymentMethod` DTO (id/name/category/alias_list/
+  sources/currencies); parser accepts `v == 1` and `v >= 2` with type
+  `pushpush-pairing`, rejects anything else; `payment_methods` absent → null
+  (v1 legacy), empty array → empty authorization; unknown fields ignored;
+  truncated JSON rejected.
+- `storage/PairedConfig`: nullable `paymentMethods`; persisted as JSON inside
+  EncryptedSharedPreferences (`EncryptedPairedConfigStore`).
+- `relay/PaymentMethodMatcher`: case-insensitive name/alias matching against
+  app label + title + text; `PushRelayService` relays only if the package
+  passes the allowlist AND (v1 pairing OR notification matches an authorized
+  method). Empty list ⇒ nothing relays until re-scan.
+- `ui/StatusScreen.SetupChecklist`: expanded — lists authorized payment
+  providers (name · category · currencies) with guidance for legacy/empty/
+  authorized states.
+- Accept: gate green (`build lint test`); 52 unit tests incl. v2 parsing,
+  large lists, matcher table tests.

@@ -34,6 +34,12 @@ class PushRelayService : NotificationListenerService() {
             sbn.notification.extras.getCharSequence(Notification.EXTRA_TEXT)?.toString(),
         ).firstOrNull { it.isNotBlank() }
         val appName = appNameOf(this, sbn.packageName)
+        val authorizedMethods = config.paymentMethods
+        if (authorizedMethods != null &&
+            PaymentMethodMatcher(authorizedMethods).match(appName, title, text) == null
+        ) {
+            return
+        }
         scope.launch {
             val client = RelayClient(
                 okHttpClient = app.okHttpClient,

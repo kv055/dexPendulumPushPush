@@ -1,16 +1,30 @@
 package de.dexarb.pushpushrelay.pairing
 
 import java.net.URI
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
+@Serializable
+data class PaymentMethod(
+    val id: Long = 0L,
+    val name: String = "",
+    val category: String = "",
+    @SerialName("alias_list") val aliasList: List<String> = emptyList(),
+    val sources: List<String> = emptyList(),
+    val currencies: List<String> = emptyList(),
+)
+
 data class PairingPayload(
+    val schemaVersion: Int,
     val notifyUrl: String,
     val heartbeatUrl: String,
     val secret: String,
+    val paymentMethods: List<PaymentMethod>?,
 ) {
     override fun toString(): String =
-        "PairingPayload(notifyUrl=$notifyUrl, heartbeatUrl=$heartbeatUrl, secret=REDACTED)"
+        "PairingPayload(schemaVersion=$schemaVersion, notifyUrl=$notifyUrl, " +
+            "heartbeatUrl=$heartbeatUrl, secret=REDACTED, paymentMethods=${paymentMethods?.size})"
 }
 
 sealed class PairingParseResult {
@@ -22,14 +36,15 @@ sealed class PairingParseResult {
 private data class WirePairingPayload(
     val v: Int,
     val type: String,
-    @kotlinx.serialization.SerialName("notify_url") val notifyUrl: String,
-    @kotlinx.serialization.SerialName("heartbeat_url") val heartbeatUrl: String,
+    @SerialName("notify_url") val notifyUrl: String,
+    @SerialName("heartbeat_url") val heartbeatUrl: String,
     val secret: String,
+    @SerialName("payment_methods") val paymentMethods: List<PaymentMethod>? = null,
 )
 
 object PairingPayloadParser {
 
-    private const val EXPECTED_VERSION = 1
+    private const val MIN_VERSION = 1
     private const val EXPECTED_TYPE = "pushpush-pairing"
     private const val MAX_SECRET_LENGTH = 256
 
@@ -41,7 +56,7 @@ object PairingPayloadParser {
         } catch (e: Exception) {
             return PairingParseResult.Invalid("malformed JSON: ${e.message}")
         }
-        if (wire.v != EXPECTED_VERSION) {
+        if (wire.v < MIN_VERSION) {
             return PairingParseResult.Invalid("unsupported version ${wire.v}")
         }
         if (wire.type != EXPECTED_TYPE) {
@@ -60,7 +75,15 @@ object PairingPayloadParser {
             return PairingParseResult.Invalid("secret longer than $MAX_SECRET_LENGTH chars")
         }
         return PairingParseResult.Parsed(
-            PairingPayload(notifyUrl = wire.notifyUrl, heartbeatUrl = wire.heartbeatUrl, secret = wire.secret)
+            PairingPayload(
+                schemaVersion = wire.v,
+                notifyUrl = wire.notifyUrl,
+                heartbeatUrl = wire.heartbeatUrl,
+                secret = wire.secret,
+                // null means the payload carried no authorization data (v1);
+                // an empty list is a valid v2 state where nothing is authorized yet.
+                paymentMethods = wire.paymentMethods,
+            )
         )
     }
 

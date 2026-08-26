@@ -1,5 +1,6 @@
 package de.dexarb.pushpushrelay.storage
 
+import de.dexarb.pushpushrelay.pairing.PaymentMethod
 import java.security.SecureRandom
 
 data class PairedConfig(
@@ -7,9 +8,11 @@ data class PairedConfig(
     val heartbeatUrl: String,
     val secret: String,
     val deviceId: String,
+    val paymentMethods: List<PaymentMethod>? = null,
 ) {
     override fun toString(): String =
-        "PairedConfig(notifyUrl=$notifyUrl, heartbeatUrl=$heartbeatUrl, secret=REDACTED, deviceId=$deviceId)"
+        "PairedConfig(notifyUrl=$notifyUrl, heartbeatUrl=$heartbeatUrl, secret=REDACTED, " +
+            "deviceId=$deviceId, paymentMethods=${paymentMethods?.size})"
 }
 
 interface PairedConfigStore {

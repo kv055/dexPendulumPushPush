@@ -45,6 +45,7 @@ import de.dexarb.pushpushrelay.R
 import de.dexarb.pushpushrelay.net.RelayClient
 import de.dexarb.pushpushrelay.net.RelayResult
 import de.dexarb.pushpushrelay.net.toLogEntry
+import de.dexarb.pushpushrelay.pairing.PaymentMethod
 import de.dexarb.pushpushrelay.storage.MessageLogEntry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -108,7 +109,7 @@ fun StatusScreen(app: PushRelayApp, onUnpair: () -> Unit, modifier: Modifier = M
 
         AllowlistEditor(app, allowlist)
 
-        SetupChecklist()
+        SetupChecklist(config?.paymentMethods)
     }
 }
 
@@ -368,7 +369,7 @@ private fun drawableToImageBitmap(drawable: android.graphics.drawable.Drawable):
 }
 
 @Composable
-private fun SetupChecklist() {
+private fun SetupChecklist(paymentMethods: List<PaymentMethod>?) {
     val context = LocalContext.current
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -387,7 +388,42 @@ private fun SetupChecklist() {
                 Text("Battery optimization: disabled ✓", style = MaterialTheme.typography.bodySmall)
             }
             Text("1. Grant notification access when prompted")
-            Text("2. Keep the app installed; services restart after reboot")
+            Text("2. Select the payment apps whose notifications should be relayed")
+            Text("3. Keep the app installed; services restart after reboot")
+
+            Text(
+                "Authorized payment providers",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+            when {
+                paymentMethods == null -> Text(
+                    "Paired with an older QR code — every allowlisted app is relayed.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                paymentMethods.isEmpty() -> Text(
+                    "None yet — link and activate payment methods in the dashboard, " +
+                        "then scan the pairing QR again to refresh this list.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                else -> {
+                    paymentMethods.forEach { method ->
+                        val details = listOfNotNull(
+                            method.category.takeIf { it.isNotBlank() },
+                            method.currencies.takeIf { it.isNotEmpty() }?.joinToString("/"),
+                        ).joinToString(" · ")
+                        Text(
+                            if (details.isBlank()) "• ${method.name}"
+                            else "• ${method.name} ($details)",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                    Text(
+                        "Only notifications mentioning these providers (or their aliases) are relayed.",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
         }
     }
 }
