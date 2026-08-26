@@ -125,3 +125,19 @@ green against a local mock pushpush server.
   helper `getSystemService(Class)` crash on API < 23, `cmd notification post`
   unavailability below API 28 (helper covers 21-27).
 - Verified: PASS 21 / 26 / 34, exit 0 (single-command run).
+
+## Test-coverage cycle
+
+### [DONE] T1: Coverage measurement + instrumented store test + compat CI
+- Kover 0.9.1 plugin (`koverHtmlReport`); UI package, MainActivity and
+  PushRelayApp excluded from counting (framework-bound). CI uploads the HTML
+  report as artifact.
+- `androidTest` suite `EncryptedPairedConfigStoreTest`: round-trip, overwrite,
+  clear, fresh-install null, and on-device assertion that the secret never
+  appears in plaintext inside shared_prefs XML. Runner configured
+  (androidx.test.runner), deps via version catalog.
+- `.github/workflows/compat.yml`: nightly (03:00 UTC) + manual
+  (`workflow_dispatch`, optional API-level input) run of
+  `compat/compat-test.sh` with KVM enabled; uploads results on failure.
+- Accept: unit gate green; androidTest APK assembles. Instrumented tests run
+  on device/emulator only (`connectedDebugAndroidTest`).

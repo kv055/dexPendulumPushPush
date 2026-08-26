@@ -22,7 +22,14 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Lint, test, assemble debug
-        run: ./gradlew lint test assembleDebug --stacktrace
+        run: ./gradlew lint test assembleDebug koverHtmlReport --stacktrace
+
+      - name: Upload coverage report
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: app/build/reports/kover/
 
       - name: Upload lint report on failure
         if: failure()

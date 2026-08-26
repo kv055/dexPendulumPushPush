@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.kover)
 }
 
 android {
@@ -15,6 +16,7 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
@@ -59,6 +61,20 @@ android {
     }
 }
 
+kover {
+    reports {
+        filters {
+            excludes {
+                packages("de.dexarb.pushpushrelay.ui")
+                classes(
+                    "de.dexarb.pushpushrelay.MainActivity",
+                    "de.dexarb.pushpushrelay.PushRelayApp",
+                )
+            }
+        }
+    }
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime)
@@ -81,4 +97,7 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
+
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.runner)
 }
