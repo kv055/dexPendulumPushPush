@@ -12,6 +12,7 @@ import androidx.core.app.NotificationCompat
 import de.dexarb.pushpushrelay.PushRelayApp
 import de.dexarb.pushpushrelay.net.RelayClient
 import de.dexarb.pushpushrelay.net.RelayResult
+import de.dexarb.pushpushrelay.net.toLogEntry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -46,7 +47,11 @@ class HeartbeatService : Service() {
                 secretProvider = { config.secret },
             )
             HeartbeatLoop().run(
-                action = { client.postHeartbeat(config.deviceId) is RelayResult.Success },
+                action = {
+                    val result = client.postHeartbeat(config.deviceId)
+                    app.settings.recordMessage(result.toLogEntry(kind = "heartbeat", summary = "Heartbeat"))
+                    result is RelayResult.Success
+                },
                 onResult = { ok ->
                     if (ok) app.settings.recordHeartbeat(System.currentTimeMillis())
                 },

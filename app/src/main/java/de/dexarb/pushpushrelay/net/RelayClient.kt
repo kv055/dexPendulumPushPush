@@ -1,5 +1,6 @@
 package de.dexarb.pushpushrelay.net
 
+import de.dexarb.pushpushrelay.storage.MessageLogEntry
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import okhttp3.MediaType.Companion.toMediaType
@@ -21,6 +22,18 @@ sealed class RelayResult {
 
     data class NetworkError(val message: String?) : RelayResult()
 }
+
+fun RelayResult.toLogEntry(kind: String, summary: String): MessageLogEntry = MessageLogEntry(
+    kind = kind,
+    timestampMillis = System.currentTimeMillis(),
+    summary = summary,
+    success = this is RelayResult.Success,
+    detail = when (this) {
+        is RelayResult.Success -> null
+        is RelayResult.HttpError -> "HTTP $code"
+        is RelayResult.NetworkError -> message?.let { "network: $it" } ?: "network error"
+    },
+)
 
 class RelayClient(
     private val okHttpClient: OkHttpClient = defaultClient(),
