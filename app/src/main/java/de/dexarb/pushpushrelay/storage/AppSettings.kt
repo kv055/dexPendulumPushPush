@@ -4,8 +4,21 @@ import android.content.Context
 import android.content.SharedPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.Json
 
 data class LastRelay(val timestampMillis: Long, val summary: String?)
+
+@Serializable
+data class MessageLogEntry(
+    val kind: String,
+    val timestampMillis: Long,
+    val summary: String?,
+    val success: Boolean,
+    val detail: String? = null,
+    val appPackage: String? = null,
+)
 
 class AppSettings(context: Context) {
 
@@ -46,10 +59,33 @@ class AppSettings(context: Context) {
     private fun readLastRelay(): LastRelay =
         LastRelay(prefs.getLong(KEY_LAST_RELAY_AT, 0L), prefs.getString(KEY_LAST_RELAY_SUMMARY, null))
 
+    private val json = Json { ignoreUnknownKeys = true }
+
+    private val _messageLog = MutableStateFlow(readMessageLog())
+    val messageLog: StateFlow<List<MessageLogEntry>> = _messageLog
+
+    @Synchronized
+    fun recordMessage(entry: MessageLogEntry) {
+        val updated = (listOf(entry) + _messageLog.value).take(MAX_MESSAGE_LOG)
+        prefs.edit()
+            .putString(KEY_MESSAGE_LOG, json.encodeToString(ListSerializer(MessageLogEntry.serializer()), updated))
+            .apply()
+        _messageLog.value = updated
+    }
+
+    private fun readMessageLog(): List<MessageLogEntry> =
+        runCatching {
+            prefs.getString(KEY_MESSAGE_LOG, null)?.let {
+                json.decodeFromString(ListSerializer(MessageLogEntry.serializer()), it)
+            }
+        }.getOrNull().orEmpty()
+
     private companion object {
         const val KEY_ALLOWLIST = "allowlist"
         const val KEY_LAST_HEARTBEAT = "last_heartbeat_at"
         const val KEY_LAST_RELAY_AT = "last_relay_at"
         const val KEY_LAST_RELAY_SUMMARY = "last_relay_summary"
+        const val KEY_MESSAGE_LOG = "message_log"
+        const val MAX_MESSAGE_LOG = 50
     }
 }

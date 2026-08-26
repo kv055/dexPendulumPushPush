@@ -10,6 +10,7 @@ import de.dexarb.pushpushrelay.PushRelayApp
 import de.dexarb.pushpushrelay.heartbeat.HeartbeatService
 import de.dexarb.pushpushrelay.net.RelayClient
 import de.dexarb.pushpushrelay.net.RelayResult
+import de.dexarb.pushpushrelay.net.toLogEntry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -40,11 +41,14 @@ class PushRelayService : NotificationListenerService() {
                 heartbeatUrl = config.heartbeatUrl,
                 secretProvider = { config.secret },
             )
-            when (val result = client.postNotification(appName, title, text)) {
-                is RelayResult.Success ->
-                    app.settings.recordRelay(System.currentTimeMillis(), "$appName: ${title ?: ""}".trim())
-                else -> {}
+            val result = client.postNotification(appName, title, text)
+            if (result is RelayResult.Success) {
+                app.settings.recordRelay(System.currentTimeMillis(), "$appName: ${title ?: ""}".trim())
             }
+            app.settings.recordMessage(
+                result.toLogEntry(kind = "relay", summary = "$appName: ${title ?: ""}".trim())
+                    .copy(appPackage = sbn.packageName)
+            )
         }
     }
 
