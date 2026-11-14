@@ -1,4 +1,4 @@
-title = "dexPendulumPushPush Gitleaks configuration"
+title = "dexPushPush Gitleaks configuration"
 
 [extend]
 useDefault = true

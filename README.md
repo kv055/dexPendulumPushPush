@@ -1,7 +1,7 @@
 # pushPushRelay
 
 Native Android (Kotlin + Compose) app that replaces MacroDroid for the
-dexArbTrading [pushpush](../dexArbTrading/dexFiatController) phone pipeline.
+dexPendulum [pushpush](../dexPendulum/dexFiatController) phone pipeline.
 
 ## What it does
 
