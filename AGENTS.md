@@ -1,6 +1,6 @@
 # AGENTS.md — pushPushRelay
 
-Native Android (Kotlin + Compose) relay app for the dexArbTrading pushpush
+Native Android (Kotlin + Compose) relay app for the dexPendulum pushpush
 endpoint. It replaces MacroDroid: it scans a pairing QR from the dexMonitor
 Communication tab, then relays payment notifications and periodic heartbeats.
 

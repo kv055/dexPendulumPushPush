@@ -80,7 +80,7 @@ One item per agent cycle. Gate: `. .tools/env.sh && ./gradlew build lint test`.
 ## P5 — Server side
 
 ### [DONE] B10: dexMonitor JSON pairing QR
-- In dexArbTrading repo: extend `PhonePushSetupSection.tsx` to render a second
+- In dexPendulum repo: extend `PhonePushSetupSection.tsx` to render a second
   QR (after Reveal) with the v1 pairing JSON; update
   `e2e/tests/communication-qr.spec.ts`; keep MacroDroid text QR untouched.
 
