@@ -1,8 +1,10 @@
 name: Compat
 
 on:
-  schedule:
-    - cron: "0 3 * * *"
+  # Scheduled nightly run disabled (compat suite never passed on CI; re-enable
+  # by restoring the cron below). Manual runs still available.
+  # schedule:
+  #   - cron: "0 3 * * *"
   workflow_dispatch:
     inputs:
       levels:

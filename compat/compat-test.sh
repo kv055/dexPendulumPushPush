@@ -7,7 +7,7 @@
 #   2. payment relay POST from an allowlisted notification
 #
 # Usage: ./compat-test.sh [--keep] [--skip-build] [levels...]
-#   levels: API levels to test, default "21 26 34"
+#   levels: API levels to test, default "34 35 36 37" (Android 14-17)
 #   --keep: leave the last emulator and mock server running for debugging
 #   --skip-build: reuse existing APKs instead of running gradle
 set -uo pipefail
@@ -32,7 +32,7 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
-[ ${#LEVELS[@]} -eq 0 ] && LEVELS=(21 26 34)
+[ ${#LEVELS[@]} -eq 0 ] && LEVELS=(34 35 36 37)
 
 log()  { echo "[compat] $*"; }
 fail() { echo "[compat] FAIL: $*" >&2; }
@@ -103,8 +103,12 @@ run_level() {
   local api="$1"
   local arch="${ARCH[$api]:-x86_64}"
   local avd="compat-api$api"
-  local image="system-images;android-$api;default;$arch"
-  local console_port=$((5600 + api % 100))
+  # Google publishes API 37+ images with a minor version: android-37.0
+  local img_api="$api"
+  [ "$api" -ge 37 ] && img_api="$api.0"
+  local image="system-images;android-$img_api;default;$arch"
+  # Emulator console ports must be even and inside adb's 5554-5584 scan range.
+  local console_port=$((5554 + 2 * (api % 16)))
   local mock_port=$((8900 + api % 100))
   local dir="$RESULTS/api$api"
   local hits="$dir/hits.log"

@@ -61,13 +61,13 @@ Rules:
 
 ## Compatibility test
 
-`compat/compat-test.sh` boots headless emulators (default: API 21, 26, 34),
+`compat/compat-test.sh` boots headless emulators (default: API 34–37, Android 14–17),
 pairs the app via deep-link against a local mock pushpush server, and asserts
 heartbeat + payment relay on each level. Run before releases:
 
 ```
 . .tools/env.sh && ./compat/compat-test.sh            # full matrix
-./compat/compat-test.sh --skip-build 21               # single level, reuse APKs
+./compat/compat-test.sh --skip-build 34               # single level, reuse APKs
 ```
 
 Exit code is non-zero on any failure; per-level logs and screenshots land in
